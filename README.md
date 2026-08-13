@@ -134,6 +134,7 @@ tests/                              # 回归测试
 这些代码是比赛研究原型，不应直接用于金融生产决策。实际部署需要重新完成数据合规、隐私保护、偏差评估、在线 A/B 测试、监控与人工审核。
 
 ## 后续可扩展方向
+更详细的能力边界、垂直项目清单和研究迭代计划见 [`docs/vertical_projects_and_research_plan.md`](docs/vertical_projects_and_research_plan.md)。
 
 1. **B1 域泛化**：使用更严格的环境划分、域对抗/重要性加权，以及图结构与属性的稳健融合。
 2. **B2 排序学习**：用 listwise/reranking 学习替代手工融合，并对不同历史长度建立校准的 gate。
