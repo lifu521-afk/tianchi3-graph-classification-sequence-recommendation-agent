@@ -50,6 +50,22 @@
   },
   "experiments": [
     {
+      "id": "public_synthetic_agent_smoke",
+      "task": "A1",
+      "kind": "crossfit",
+      "protocol_id": "synthetic_agent_smoke_v1",
+      "script": "agent/synthetic_experiment.py",
+      "args": ["--output-dir", "{run_dir}"],
+      "result_file": "synthetic_agent_result.json",
+      "metric_path": "metric",
+      "baseline_path": "baseline",
+      "max_trials": 1,
+      "cost_seconds": 5,
+      "stability": {"fold_lifts_paths": ["fold_lifts"], "min_folds": 5, "require_positive_fold": true},
+      "hypothesis": "The public Agent control loop should execute and audit a registered experiment without competition data.",
+      "description": "Deterministic CI smoke experiment; its score has no leaderboard meaning."
+    },
+    {
       "id": "a1_pairwise_logistic_acceptor_oof",
       "task": "A1",
       "kind": "oof",

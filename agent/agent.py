@@ -32,7 +32,18 @@ LOCK_PATH = AGENT_DIR / ".agent.lock"
 
 
 def load_config() -> dict[str, Any]:
-    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    # The public repository intentionally excludes private scratch scripts and
+    # competition artifacts. Keep the registry usable in a clean checkout;
+    # legacy experiments can be enabled explicitly in the original workspace.
+    if os.environ.get("TIANCHI3_INCLUDE_LEGACY", "0").lower() not in {"1", "true", "yes"}:
+        experiments = []
+        for item in config.get("experiments", []):
+            script = item.get("script")
+            if script and (ROOT / str(script)).exists():
+                experiments.append(item)
+        config["experiments"] = experiments
+    return config
 
 
 def make_run_id(experiment_id: str) -> str:

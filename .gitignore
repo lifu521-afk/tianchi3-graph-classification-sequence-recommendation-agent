@@ -24,4 +24,8 @@ outputs/
 checkpoints/
 .env
 local_config.py
-
+agent/state.json
+agent/memory.jsonl
+agent/official_feedback.json
+agent/runs/
+agent/.agent.lock
