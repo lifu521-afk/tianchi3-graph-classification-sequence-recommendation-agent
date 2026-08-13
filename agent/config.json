@@ -1,0 +1,507 @@
+{
+  "budget": {
+    "max_rounds": 20,
+    "max_seconds_per_experiment": 1800,
+    "max_total_seconds": 14400,
+    "min_lift": 0.0002,
+    "stop_after_no_improve": 8,
+    "require_multi_split_for_promotion": true
+  },
+  "agent_policy": {
+    "selection": "feedback_weighted_serial_ucb",
+    "planner": "auto",
+    "one_experiment_at_a_time": true,
+    "local_metrics_are_not_official": true,
+    "official_feedback_is_external": true,
+    "stop_only_when_both_official_targets_are_confirmed": true
+  },
+  "llm_planner": {
+    "enabled": true,
+    "api_key_env": "TIANCHI_AGENT_API_KEY",
+    "base_url_env": "TIANCHI_AGENT_BASE_URL",
+    "model_env": "TIANCHI_AGENT_MODEL",
+    "timeout_seconds": 45,
+    "temperature": 0.0,
+    "max_memory_events": 30,
+    "fallback_to_deterministic": true,
+    "allow_only_registered_experiments": true
+  },
+  "targets": {
+    "A1_accuracy": 0.87,
+    "A2_ndcg_at_10": 0.512
+  },
+  "official_reference": {
+    "A1_accuracy": 0.7688,
+    "A2_ndcg_at_10": 0.5085,
+    "overall_score": 0.6387,
+    "source": "user-confirmed official submission",
+    "submitted_at": "2026-07-21 13:09:28",
+    "note": "A1 and A2 are the confirmed component bests in the active prediction.zip."
+  },
+  "promotion": {
+    "write_root_prediction_zip": true,
+    "require_agent_stability_audit": true,
+    "require_zero_negative_folds": true,
+    "stability_epsilon": 1e-12,
+    "required_zip_members": [
+      "A1.csv",
+      "A2.csv"
+    ]
+  },
+  "experiments": [
+    {
+      "id": "a1_pairwise_logistic_acceptor_oof",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_locked_oof_cache_v1",
+      "script": "scratch_a1_pairwise_logistic_acceptor_oof.py",
+      "result_file": "scratch_a1_pairwise_logistic_acceptor_oof_results.json",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 300,
+      "hypothesis": "Pair-specific acceptance can improve only a small set of high-margin transitions without replacing the content model globally.",
+      "description": "Strict five-fold pair-specific acceptance model over current A1 transition candidates."
+    },
+    {
+      "id": "baseline_reproducible_both_tasks",
+      "task": "A1+A2",
+      "kind": "submission",
+      "protocol_ids": {
+        "A1": "a1_single_holdout_run_solution_v1",
+        "A2": "a2_single_holdout_run_solution_v1"
+      },
+      "script": "run_solution.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "experiment_log.json",
+      "metric_paths": {
+        "A1": "classification.selected_validation_accuracy",
+        "A2": "recommendation.selected_validation_ndcg_at_10"
+      },
+      "max_trials": 1,
+      "cost_seconds": 900,
+      "hypothesis": "Reproduce both task baselines in an isolated run so later gains have a comparable reference.",
+      "description": "Reproducible baseline generator with validation enabled and isolated output directory."
+    },
+    {
+      "id": "a1_directed_gpr_logistic_oof",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_split_seeds_2026074x_content_baseline_v1",
+      "script": "scratch_a1_directed_gpr_logistic_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_directed_gpr_logistic_oof_results.json",
+      "metric_path": "best.accuracy",
+      "baseline_path": "best.baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 1200,
+      "hypothesis": "Separate incoming and outgoing propagation may help directed nodes, but only if the content anchor remains dominant.",
+      "description": "Five split directed GPR-style propagation with a fixed low-weight residual blend into the content classifier."
+    },
+    {
+      "id": "a1_graphsage_residual_gate_oof",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_split_seeds_2026074x_content_baseline_v1",
+      "script": "scratch_a1_graphsage_residual_gate_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_graphsage_residual_gate_oof_results.json",
+      "metric_path": "best.accuracy",
+      "baseline_path": "best.baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 1500,
+      "hypothesis": "A conservative degree-aware residual gate may help connected nodes while leaving sparse nodes on the content path.",
+      "description": "Five split bidirectional GraphSAGE-style mean aggregation with a conservative MLP residual gate over the content baseline."
+    },
+    {
+      "id": "a2_coldstart_lightgcn_oof",
+      "task": "A2",
+      "kind": "oof",
+      "protocol_id": "a2_five_split_test_like_history_v1",
+      "script": "scratch_a2_lightgcn_coldstart_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a2_lightgcn_coldstart_oof_results.json",
+      "metric_path": "best.mean_candidate_ndcg_at_10",
+      "baseline_path": "baseline_ndcg_at_10",
+      "max_trials": 1,
+      "cost_seconds": 1500,
+      "hypothesis": "Cold-start users may benefit from item propagation only when history and metadata agree.",
+      "description": "Five split cold-start LightGCN-style item filter using train-user bipartite propagation, item metadata similarity, and target-item restriction."
+    },
+    {
+      "id": "a2_graph_residual_gate_oof",
+      "task": "A2",
+      "kind": "oof",
+      "protocol_id": "a2_five_split_test_like_history_v1",
+      "script": "scratch_a2_graph_residual_gate_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a2_graph_residual_gate_oof_results.json",
+      "metric_path": "best.mean_candidate_ndcg_at_10",
+      "baseline_path": "baseline_ndcg_at_10",
+      "max_trials": 1,
+      "cost_seconds": 1200,
+      "hypothesis": "A low-margin graph residual can improve sparse recommendations without disturbing confident history rankings.",
+      "description": "Five split low-margin residual gate that preserves the history baseline and only injects a small LightGCN signal on uncertain rows."
+    },
+    {
+      "id": "a2_sparse_ridge_tower_gate_oof",
+      "task": "A2",
+      "kind": "oof",
+      "protocol_id": "a2_five_split_test_like_history_v1",
+      "script": "scratch_a2_ridge_tower_gate_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a2_ridge_tower_gate_oof_results.json",
+      "metric_path": "best.mean_candidate_ndcg_at_10",
+      "baseline_path": "baseline_ndcg_at_10",
+      "max_trials": 1,
+      "cost_seconds": 900,
+      "hypothesis": "A sparse linear content tower can recover cold-start preference signals with lower variance than a global graph replacement.",
+      "description": "Five split sparse Ridge content tower over hashed history/user features, used only as a low-margin residual correction."
+    },
+    {
+      "id": "a1_multimodel_content_selector_oof",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_split_seeds_2026075x_content_baseline_v1",
+      "script": "scratch_a1_multimodel_selector_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_multimodel_selector_oof_results.json",
+      "metric_path": "best.mean_candidate_accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 1200,
+      "hypothesis": "A small content-model committee can correct only confident disagreements and avoid global model replacement.",
+      "description": "Five split conservative selector over Logistic, Ridge, and LinearSVC content models; switches only on confident disagreements."
+    },
+    {
+      "id": "a1_nested_lgbm_selector_oof",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_nested_lgbm_selector_v1",
+      "priority_hint": 1.0,
+      "script": "scratch_a1_nested_lgbm_selector_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_nested_lgbm_selector_oof_results.json",
+      "metric_path": "best.mean_candidate_accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 1800,
+      "hypothesis": "A nested selector may learn when graph features are trustworthy, but must prove zero-negative-fold stability.",
+      "description": "Serial five-split LightGBM alternative over sparse content and directed graph features with a conservative margin gate and current-A1 anchor."
+    },
+    {
+      "id": "a1_directed_pairwise_ridge_gate_oof_v2",
+      "task": "A1",
+      "kind": "oof",
+      "protocol_id": "a1_directed_pairwise_ridge_gate_v1",
+      "priority_hint": 2.0,
+      "script": "scratch_a1_directed_pairwise_ridge_gate_oof.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_directed_pairwise_ridge_gate_oof_results.json",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 600,
+      "hypothesis": "Low-capacity pairwise Ridge acceptors may learn stable directed corrections for only the transitions 1<->4, 8<->4, and 6<->8.",
+      "description": "Five-fold directed incoming/outgoing residual with low-capacity pair-specific acceptance models for 1<->4, 8<->4, and 6<->8."
+    },
+    {
+      "id": "a1_directed_incoming_multihop_pair_crossfit",
+      "task": "A1",
+      "kind": "crossfit",
+      "family": "a1_directed_label_propagation",
+      "protocol_id": "a1_locked_oof_directed_incoming_multihop_pair_crossfit_v1",
+      "priority_hint": 5.0,
+      "transfer_hint": 1.0,
+      "script": "scratch_a1_directed_incoming_multihop_pair_crossfit.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_directed_incoming_multihop_pair_crossfit_results.json",
+      "candidate_zip": "prediction_a1_directed_incoming_multihop_pair_crossfit_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 120,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "validation.development_half.net_fixes",
+          "validation.blind_half.net_fixes",
+          "validation.minimum_random_half_net"
+        ]
+      },
+      "hypothesis": "Incoming directed label information is strong enough to correct only low-margin baseline predictions when nested cross-fit pair evidence is consistently positive.",
+      "description": "Leakage-safe incoming 1/2/3-hop propagation with fold-external pair selection, active-package label guards, and exact A2 byte preservation."
+    },
+    {
+      "id": "a1_pairwise_content_guard_v2_balanced_two_node",
+      "task": "A1",
+      "kind": "oof",
+      "family": "a1_isolated_pairwise_content_consensus",
+      "protocol_id": "a1_pairwise_content_guard_v2_balanced_two_node",
+      "priority_hint": 8.0,
+      "transfer_hint": 3.0,
+      "script": "scratch_a1_pairwise_content_guard_v2.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}",
+        "--variant",
+        "balanced_two_node"
+      ],
+      "result_file": "scratch_a1_pairwise_content_guard_v2_results.json",
+      "candidate_zip": "prediction_a1_pairwise_content_guard_v2_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes"
+        ]
+      },
+      "hypothesis": "Two remaining isolated 8-to-4 rows can be added safely because value-token, content-committee, and binary pair experts agree and the incremental rule is nonnegative across folds, node groups, and random partitions.",
+      "description": "Balanced isolated-node 8-to-4 consensus variant; adds nodes 3940 and 5207 on top of the already deployed 1-to-4 content expert."
+    },
+    {
+      "id": "a1_pairwise_content_guard_v2_strict_one_node",
+      "task": "A1",
+      "kind": "oof",
+      "family": "a1_isolated_pairwise_content_consensus",
+      "protocol_id": "a1_pairwise_content_guard_v2_strict_one_node",
+      "priority_hint": 7.5,
+      "transfer_hint": 3.5,
+      "script": "scratch_a1_pairwise_content_guard_v2.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}",
+        "--variant",
+        "strict_one_node"
+      ],
+      "result_file": "scratch_a1_pairwise_content_guard_v2_results.json",
+      "candidate_zip": "prediction_a1_pairwise_content_guard_v2_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes"
+        ]
+      },
+      "hypothesis": "A stricter high-consensus 8-to-4 gate may transfer better online by changing only node 5207 while retaining positive multi-partition OOF evidence.",
+      "description": "Strict isolated-node 8-to-4 consensus variant; changes only node 5207 and sacrifices some local lift for lower online risk."
+    },
+    {
+      "id": "a1_pairwise_rank_consensus_v3_strict_content_four_node",
+      "task": "A1",
+      "kind": "oof",
+      "family": "a1_pairwise_rank_consensus",
+      "protocol_id": "a1_pairwise_rank_consensus_v3_strict_content_four_node",
+      "priority_hint": 9.5,
+      "transfer_hint": 5.0,
+      "script": "scratch_a1_pairwise_rank_consensus_v3.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}",
+        "--variant",
+        "strict_content_four_node"
+      ],
+      "result_file": "scratch_a1_pairwise_rank_consensus_v3_results.json",
+      "candidate_zip": "prediction_a1_pairwise_rank_consensus_v3_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes",
+          "best.development_half_net",
+          "best.held_blind_half_net"
+        ]
+      },
+      "hypothesis": "Nine pairwise content experts can safely correct only the strongest isolated 4-to-8 and 1-to-2 disagreements when score percentile consensus is high and the deployed model margin is low.",
+      "description": "Lower-risk four-node content-only correction. It changes three isolated 1-to-2 rows and one isolated 4-to-8 row, with positive development and blind halves and no negative fold, node group, or random partition."
+    },
+    {
+      "id": "a1_pairwise_rank_crossfit_v4_isolated_1to4",
+      "task": "A1",
+      "kind": "crossfit",
+      "family": "a1_pairwise_rank_crossfit",
+      "protocol_id": "a1_pairwise_rank_crossfit_v4_isolated_1to4",
+      "priority_hint": 10.0,
+      "transfer_hint": 5.5,
+      "script": "scratch_a1_pairwise_rank_crossfit_v4.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_pairwise_rank_crossfit_v4_results.json",
+      "candidate_zip": "prediction_a1_pairwise_rank_crossfit_v4_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes",
+          "best.development_half_net",
+          "best.held_blind_half_net"
+        ]
+      },
+      "hypothesis": "Fold-external threshold calibration can add a stable isolated 1-to-4 correction on top of the active strict policy without relying on graph neighborhoods or changing confident rows.",
+      "description": "Fixed isolated 1-to-4 top-3 rank-consensus rule. Thresholds are learned on the other four folds, and the candidate changes only three asserted test nodes after passing fold, node-group, random, blind, and half-split audits."
+    },
+    {
+      "id": "a1_pairwise_rank_crossfit_v5_conflict_guarded_4to1_4to8",
+      "task": "A1",
+      "kind": "crossfit",
+      "family": "a1_pairwise_rank_crossfit",
+      "protocol_id": "a1_pairwise_rank_crossfit_v5_conflict_guarded_4to1_4to8",
+      "priority_hint": 9.0,
+      "transfer_hint": 4.0,
+      "script": "scratch_a1_pairwise_rank_crossfit_v5.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a1_pairwise_rank_crossfit_v5_results.json",
+      "candidate_zip": "prediction_a1_pairwise_rank_crossfit_v5_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes",
+          "best.development_half_net",
+          "best.held_blind_half_net"
+        ]
+      },
+      "hypothesis": "A conflict-abstaining combination of conservative 4-to-1 and 4-to-8 fold-external rank rules can add a small stable correction over v4 while preserving all current predictions outside six test rows.",
+      "description": "Two fixed fold-external rules selected after v4. OOF rows hit by both rules are left unchanged; the test masks do not overlap. Promotion requires nonnegative evidence in every audited split and positive development and blind halves."
+    },
+    {
+      "id": "a1_pairwise_rank_consensus_v3_balanced_content_six_node",
+      "task": "A1",
+      "kind": "oof",
+      "family": "a1_pairwise_rank_consensus",
+      "protocol_id": "a1_pairwise_rank_consensus_v3_balanced_content_six_node",
+      "priority_hint": 9.0,
+      "transfer_hint": 4.0,
+      "script": "scratch_a1_pairwise_rank_consensus_v3.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}",
+        "--variant",
+        "balanced_content_six_node"
+      ],
+      "result_file": "scratch_a1_pairwise_rank_consensus_v3_results.json",
+      "candidate_zip": "prediction_a1_pairwise_rank_consensus_v3_candidate.zip",
+      "metric_path": "best.accuracy",
+      "baseline_path": "baseline_accuracy",
+      "max_trials": 1,
+      "cost_seconds": 30,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_nets"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true,
+        "required_positive_paths": [
+          "best.net_fixes",
+          "best.development_half_net",
+          "best.held_blind_half_net"
+        ]
+      },
+      "hypothesis": "Adding a conservative low-degree 6-to-8 consensus rule to the strongest isolated content corrections can raise local net fixes while retaining nonnegative evidence across every audited partition.",
+      "description": "Higher-lift six-node content correction. It contains the strict four-node rules plus two low-degree 6-to-8 rows; the added transition has weaker standalone transfer confidence despite positive combined OOF stability."
+    },
+    {
+      "id": "a2_hard_negative_micro_selector_crossfit",
+      "task": "A2",
+      "kind": "crossfit",
+      "family": "a2_current_anchor_hard_negative_selector",
+      "protocol_id": "a2_current_anchor_hard_negative_selector_v2",
+      "priority_hint": 10.0,
+      "transfer_hint": 4.0,
+      "script": "scratch_a2_hard_negative_micro_selector_crossfit.py",
+      "args": [
+        "--output-dir",
+        "{run_dir}"
+      ],
+      "result_file": "scratch_a2_hard_negative_micro_selector_crossfit_results.json",
+      "candidate_zip": "prediction_a2_hard_negative_micro_selector_candidate.zip",
+      "metric_path": "best.mean_candidate_ndcg_at_10",
+      "baseline_path": "baseline_ndcg_at_10",
+      "max_trials": 2,
+      "cost_seconds": 900,
+      "stability": {
+        "fold_lifts_paths": [
+          "best.fold_lifts"
+        ],
+        "min_folds": 5,
+        "require_positive_fold": true
+      },
+      "hypothesis": "The hard-negative len4p expert contains useful corrections, but transfer risk can be reduced by switching only a small cross-fitted subset on top of the confirmed 0.5085 row-selector anchor.",
+      "description": "Nested five-fold row-gain selector over the current A2 anchor and the historical hard-negative len4p expert, capped at 25 percent of expert differences with exact A1 and nonselected-row preservation."
+    }
+  ]
+}
