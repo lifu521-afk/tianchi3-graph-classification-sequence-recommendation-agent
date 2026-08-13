@@ -70,6 +70,24 @@ python -m agent.agent --status
 python -m agent.agent --max-rounds 1
 ```
 
+## 项目效果
+
+项目已经形成从数据读取、基线建模、结构/序列增强、可靠验证到提交审计的完整闭环。已确认的线上 anchor 为：A 榜总分 `0.6309`（A1 `0.7590`，A2 `0.5027`），B 榜总分 `0.32221`（B1 `0.42680`，B2 `0.21763`）。两套榜单协议不同，数字仅作各自项目内的复盘参考。
+
+关键技术不是单纯堆模型，而是：
+
+- 用内容/规则模型建立低方差 anchor；
+- 用入边、出边、转移和重复偏好补充结构信号；
+- 用 OOF、test-like、分桶和最差折验证泛化风险；
+- 用 Agent 管理假设、预算、失败记录和候选接受；
+- 用提交校验避免格式错误和结果污染。
+
+详细内容见：
+
+- [`docs/technical_route.md`](docs/technical_route.md)：技术路线
+- [`docs/experiment_summary.md`](docs/experiment_summary.md)：结果与方法结论
+- [`docs/reproducibility.md`](docs/reproducibility.md)：复现与审计说明
+
 ## 合规边界
 
 代码仅用于比赛复现和离线研究。实际部署到金融、医疗或其他高风险场景前，需要重新完成数据授权、隐私保护、时间切分、偏差评估、人工审核、监控和回滚设计。
